@@ -1,0 +1,47 @@
+﻿<div class="architecture-page">
+  <div class="arch-header">
+    <h2 class="page-title">HR Policy RAG Pipeline Architecture</h2>
+    <p class="page-desc">Visual breakdown of the privacy-first Retrieval-Augmented Generation lifecycle.</p>
+  </div>
+
+  <!-- Pipeline Flow Cards -->
+  <div class="pipeline-grid">
+    @for (step of pipelineSteps; track step.step) {
+      <div class="step-card">
+        <div class="step-badge">Step {{ step.step }}</div>
+        <h3 class="step-title">{{ step.title }}</h3>
+        <div class="tech-pill">{{ step.tech }}</div>
+        <p class="step-desc">{{ step.desc }}</p>
+      </div>
+    }
+  </div>
+
+  <!-- Comparison & Viva Justification Table -->
+  <div class="table-section">
+    <h3 class="section-title">Design Decisions & Technology Justification</h3>
+    <div class="table-card">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Chosen Solution</th>
+            <th>Alternative Considered</th>
+            <th>Engineering Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of comparisonMatrix; track row.component) {
+            <tr>
+              <td class="comp-col">{{ row.component }}</td>
+              <td class="chosen-col">
+                <span class="badge-chosen">{{ row.chosen }}</span>
+              </td>
+              <td class="alt-col">{{ row.alternative }}</td>
+              <td class="reason-col">{{ row.reason }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,39 @@
+﻿.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.725rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  &:hover {
+    border-color: #60a5fa;
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    transform: translateY(-1px);
+  }
+
+  .source-icon {
+    font-size: 0.85rem;
+  }
+
+  .source-name {
+    text-transform: capitalize;
+  }
+
+  .chunk-pill {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    color: #94a3b8;
+    font-family: monospace;
+  }
+}

@@ -1,0 +1,103 @@
+﻿<div class="chat-layout">
+  <!-- Conversation Feed -->
+  <div class="messages-scroll-area" #messagesContainer>
+    <div class="messages-container">
+      @for (msg of chatState.messages(); track msg.id) {
+        <div class="message-row" [ngClass]="msg.sender">
+          <!-- Avatar Icon -->
+          <div class="avatar">
+            @if (msg.sender === 'user') {
+              <span>👤</span>
+            } @else if (msg.sender === 'assistant') {
+              <span>🤖</span>
+            } @else {
+              <span>⚠️</span>
+            }
+          </div>
+
+          <!-- Bubble Content -->
+          <div class="message-content-wrapper">
+            <div class="message-bubble" [ngClass]="{ 'error-bubble': msg.isError, 'loading-bubble': msg.isLoading }">
+              @if (msg.isLoading) {
+                <div class="rag-thinking">
+                  <div class="spinner-ring"></div>
+                  <div class="thinking-text">
+                    <span class="step-title">Searching HR Policy Vector DB...</span>
+                    <span class="step-sub">Querying all-MiniLM-L6-v2 embeddings & filtering distance...</span>
+                  </div>
+                </div>
+              } @else {
+                <div class="message-body" [innerHTML]="msg.text | markdownFormat"></div>
+
+                <!-- Source Citations Drawer -->
+                @if (msg.sources && msg.sources.length > 0) {
+                  <div class="sources-panel">
+                    <div class="sources-header">
+                      <span class="sources-title">Verified Policy Citations ({{ msg.sources.length }})</span>
+                    </div>
+                    <div class="sources-grid">
+                      @for (src of msg.sources; track src.source + src.chunk) {
+                        <app-source-badge [source]="src"></app-source-badge>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+
+            <!-- Timestamp -->
+            <span class="message-time">
+              {{ msg.timestamp | date:'shortTime' }}
+            </span>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Quick Starter Suggestions (Shown if only welcome message) -->
+  @if (!chatState.hasUserMessages()) {
+    <div class="starter-suggestions">
+      <span class="starter-title">Try asking one of these verified HR policy questions:</span>
+      <div class="starter-chips">
+        @for (q of sampleQuestions.slice(0, 4); track q.label) {
+          <button class="starter-chip-btn" (click)="askSample(q)">
+            <span>{{ q.icon }}</span>
+            <span>{{ q.label }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Bottom Input Bar -->
+  <div class="input-section">
+    <div class="input-card">
+      <textarea
+        class="chat-textarea"
+        placeholder="Ask any question about leave, WFH, working hours, notice period, or employee conduct..."
+        [(ngModel)]="userInput"
+        (keydown)="onKeyDown($event)"
+        [disabled]="chatState.isLoading()"
+        rows="2"
+      ></textarea>
+      
+      <button 
+        class="send-btn" 
+        (click)="submitQuestion()" 
+        [disabled]="!userInput.trim() || chatState.isLoading()"
+        title="Send Question (Enter)"
+      >
+        @if (chatState.isLoading()) {
+          <span class="spinner-small"></span>
+        } @else {
+          <span class="send-icon">➤</span>
+        }
+      </button>
+    </div>
+    
+    <div class="input-disclaimer">
+      <span>🔒 Powered by ChromaDB & Llama 3 via Ollama. Answers are strictly grounded in ACME Corporation HR policies.</span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,55 @@
+﻿<div class="explorer-page">
+  <div class="explorer-header">
+    <div class="header-left">
+      <h2 class="page-title">Company HR Policy Library</h2>
+      <p class="page-desc">Explore the 6 official policy documents indexed into ChromaDB for semantic retrieval.</p>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="category-tabs">
+      @for (cat of categories; track cat.id) {
+        <button 
+          class="cat-tab-btn" 
+          [ngClass]="{ active: selectedCategory === cat.id }"
+          (click)="filterByCategory(cat.id)"
+        >
+          {{ cat.name }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Documents Grid -->
+  <div class="documents-grid">
+    @for (doc of filteredCatalog; track doc.filename) {
+      <div class="policy-card">
+        <div class="card-top">
+          <div class="pdf-tag">
+            <span class="tag-icon">📄</span>
+            <span>PDF v{{ doc.version }}</span>
+          </div>
+          <span class="chunk-count-badge">ChromaDB Indexed</span>
+        </div>
+
+        <h3 class="card-title">{{ doc.title }}</h3>
+        <span class="card-filename">{{ doc.filename }}</span>
+
+        <p class="card-desc">{{ doc.description }}</p>
+
+        <div class="highlights-box">
+          <span class="highlights-title">Key Policy Rules:</span>
+          <div class="tags-row">
+            @for (h of doc.keyHighlights; track h) {
+              <span class="highlight-tag">{{ h }}</span>
+            }
+          </div>
+        </div>
+
+        <button class="ask-doc-btn" (click)="queryAboutDoc(doc)">
+          <span>Ask AI About This Policy</span>
+          <span class="arrow-icon">→</span>
+        </button>
+      </div>
+    }
+  </div>
+</div>

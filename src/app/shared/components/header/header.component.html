@@ -1,0 +1,48 @@
+﻿<header class="app-header">
+  <div class="header-container">
+    <div class="brand-section">
+      <div class="logo-badge">
+        <span class="logo-icon">🏢</span>
+      </div>
+      <div class="brand-text">
+        <h1 class="brand-title">ACME HR Policy AI</h1>
+        <span class="brand-subtitle">Grounded Document Assistant • Llama 3 + ChromaDB</span>
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav class="nav-links">
+      <a routerLink="/chat" routerLinkActive="active" class="nav-btn">
+        <span class="nav-icon">💬</span>
+        <span>AI Assistant</span>
+      </a>
+      <a routerLink="/explorer" routerLinkActive="active" class="nav-btn">
+        <span class="nav-icon">📚</span>
+        <span>Policy Catalog</span>
+      </a>
+      <a routerLink="/architecture" routerLinkActive="active" class="nav-btn">
+        <span class="nav-icon">⚡</span>
+        <span>RAG Pipeline</span>
+      </a>
+    </nav>
+
+    <!-- Backend Status Chip -->
+    <div class="header-actions">
+      <div 
+        class="status-pill" 
+        [ngClass]="backendHealth().status"
+        [title]="backendHealth().message || ''"
+        (click)="retryConnection()"
+      >
+        <span class="status-dot"></span>
+        <span class="status-label">
+          @switch (backendHealth().status) {
+            @case ('online') { Backend: Port 8001 (Online) }
+            @case ('offline') { Backend: Port 8001 (Offline - Retry) }
+            @default { Checking Backend... }
+          }
+        </span>
+      </div>
+    </div>
+  </div>
+</header>
