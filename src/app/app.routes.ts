@@ -1,4 +1,4 @@
-﻿import { Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { ChatComponent } from './features/chat/chat.component';
 import { PolicyExplorerComponent } from './features/policy-explorer/policy-explorer.component';
 import { ArchitectureViewComponent } from './features/architecture-view/architecture-view.component';
