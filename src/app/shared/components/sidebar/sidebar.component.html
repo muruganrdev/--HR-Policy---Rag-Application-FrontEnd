@@ -1,46 +1,47 @@
 <aside class="app-sidebar">
-  <!-- Actions Card -->
-  <div class="sidebar-block">
-    <button class="new-chat-btn" (click)="clearChat()" title="Start a new clear conversation">
-      <span class="btn-icon">✨</span>
-      <span>New Conversation</span>
+  <div class="sidebar-block sidebar-actions">
+    <button class="new-chat-btn" (click)="createNewChat()" title="Start a new chat">
+      <span class="btn-icon">＋</span>
+      <span>New Chat</span>
     </button>
   </div>
 
-  <!-- Suggested Questions Section -->
   <div class="sidebar-block">
     <div class="block-header">
-      <span class="header-icon">💡</span>
-      <h3 class="header-title">Quick Test Prompts</h3>
+      <span class="header-icon">💬</span>
+      <h3 class="header-title">Conversations</h3>
     </div>
-    <div class="quick-prompts-list">
-      @for (q of sampleQuestions; track q.label) {
-        <button class="prompt-chip" (click)="selectSampleQuestion(q)" [disabled]="chatState.isLoading()">
-          <span class="prompt-icon">{{ q.icon }}</span>
-          <div class="prompt-meta">
-            <span class="prompt-label">{{ q.label }}</span>
-            <span class="prompt-query-preview">{{ q.query }}</span>
-          </div>
+
+    <div class="conversation-list">
+      @for (conversation of chatState.conversations(); track conversation.id) {
+        <button
+          class="conversation-tab"
+          [class.active]="conversation.id === chatState.activeConversationId()"
+          (click)="selectConversation(conversation.id)"
+          type="button"
+        >
+          <span class="conversation-dot"></span>
+          <span class="conversation-title">{{ conversation.title || 'New chat' }}</span>
         </button>
       }
     </div>
   </div>
 
-  <!-- Indexed Policy PDFs -->
   <div class="sidebar-block">
     <div class="block-header">
-      <span class="header-icon">📑</span>
-      <h3 class="header-title">HR Knowledge Base (6 PDFs)</h3>
+      <span class="header-icon">💡</span>
+      <h3 class="header-title">Recommended Questions</h3>
     </div>
-    <div class="policy-pills">
-      @for (doc of catalog; track doc.filename) {
-        <a routerLink="/explorer" class="policy-mini-card">
-          <div class="mini-card-head">
-            <span class="doc-badge">PDF</span>
-            <span class="doc-title">{{ doc.title }}</span>
+
+    <div class="quick-prompts-list">
+      @for (question of recommendedQuestions; track question.label) {
+        <button class="prompt-chip" (click)="selectSampleQuestion(question)" [disabled]="chatState.isLoading()" type="button">
+          <span class="prompt-icon">{{ question.icon }}</span>
+          <div class="prompt-meta">
+            <span class="prompt-label">{{ question.label }}</span>
+            <span class="prompt-query-preview">{{ question.query }}</span>
           </div>
-          <span class="doc-file">{{ doc.filename }}</span>
-        </a>
+        </button>
       }
     </div>
   </div>

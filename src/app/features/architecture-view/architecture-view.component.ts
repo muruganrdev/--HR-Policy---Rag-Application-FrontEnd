@@ -12,63 +12,57 @@ export class ArchitectureViewComponent {
   readonly pipelineSteps = [
     {
       step: '1',
-      title: 'Query Preprocessing',
-      tech: 'Ollama + Llama 3',
-      desc: 'Corrects spelling and grammar before retrieval.'
+      title: 'User Question',
+      tech: 'Frontend input',
+      desc: 'The user submits a question in the assistant sidebar or chat panel.'
     },
     {
       step: '2',
-      title: 'Query Rewriting',
-      tech: 'Ollama + Llama 3',
-      desc: 'Rephrases the question for better semantic retrieval while preserving important terms.'
+      title: 'Question Preprocessing',
+      tech: 'Prompt normalization',
+      desc: 'The request is cleaned and prepared before routing.'
     },
     {
       step: '3',
-      title: 'Query Expansion',
-      tech: 'Ollama + Llama 3',
-      desc: 'Adds useful retrieval keywords to improve recall.'
+      title: 'Query Rewriting',
+      tech: 'Optional LLM step',
+      desc: 'The backend may reformulate the request to improve targeting.'
     },
     {
       step: '4',
-      title: 'Embedding',
-      tech: 'all-MiniLM-L6-v2',
-      desc: 'Converts text into numerical vectors for semantic search.'
+      title: 'Query Expansion',
+      tech: 'Optional retrieval enhancement',
+      desc: 'Related terms may be expanded to improve recall where needed.'
     },
     {
       step: '5',
-      title: 'ChromaDB Retrieval',
-      tech: 'ChromaDB',
-      desc: 'Searches semantically similar HR-policy chunks.'
+      title: 'Route / Retrieval',
+      tech: 'RAG or Agent',
+      desc: 'The backend decides whether to resolve through retrieval or a tool-driven agent flow.'
     },
     {
       step: '6',
-      title: 'Distance Threshold Filtering',
-      tech: 'Threshold = 1.2',
-      desc: 'Filters out chunks whose distance exceeds the configured threshold.'
+      title: 'RAG Retrieval',
+      tech: 'Vector search',
+      desc: 'When routed as RAG, relevant HR policy chunks are retrieved, ranked, and grounded.'
     },
     {
       step: '7',
-      title: 'CrossEncoder Reranking',
-      tech: 'cross-encoder/ms-marco-MiniLM-L-6-v2',
-      desc: 'Reorders retrieved candidates using query-document relevance scoring.'
+      title: 'Agent Tool Selection',
+      tech: 'Agent workflow',
+      desc: 'When routed as Agent, it selects tools for employee, policy, and leave data lookup.'
     },
     {
       step: '8',
-      title: 'Relevant Context',
-      tech: 'Top N = 5 chunks',
-      desc: 'Selected chunks passed to the LLM for generation.'
+      title: 'Tool Execution / Observation',
+      tech: 'Planner loop',
+      desc: 'The agent may call tools and observe results until it reaches a stable answer.'
     },
     {
       step: '9',
-      title: 'Llama 3 Generation',
-      tech: 'Llama 3 via Ollama',
-      desc: 'Generates answer grounded in the retrieved context.'
-    },
-    {
-      step: '10',
-      title: 'Grounded Answer + Sources',
-      tech: '',
-      desc: 'Final answer displayed with verified policy citations.'
+      title: 'Final Answer',
+      tech: 'Grounded response',
+      desc: 'The backend returns the answer, route metadata, and any relevant sources or tools used.'
     }
   ];
 

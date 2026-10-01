@@ -9,50 +9,40 @@ export const POLICY_CATEGORIES: PolicyCategory[] = [
   { id: 'exit', name: 'Notice & Offboarding', icon: 'log-out' },
 ];
 
-export const SAMPLE_QUESTIONS: SampleQuestion[] = [
+export const RECOMMENDED_QUESTIONS: SampleQuestion[] = [
   {
     category: 'leave',
-    label: 'Annual Leave Entitlement',
-    query: 'What is the annual leave policy and how many days can full-time employees take?',
+    label: 'Leave balance',
+    query: "What is Priya Nair's annual leave balance?",
     icon: '🌴'
   },
   {
+    category: 'department',
+    label: 'Department lookup',
+    query: 'Who works in the Engineering department?',
+    icon: '👥'
+  },
+  {
+    category: 'management',
+    label: 'Reporting line',
+    query: 'Who reports to Arun Kumar?',
+    icon: '🧭'
+  },
+  {
+    category: 'policy',
+    label: 'Annual leave policy',
+    query: 'What is the annual leave policy for India?',
+    icon: '📘'
+  },
+  {
     category: 'leave',
-    label: 'Vacation Days (Semantic)',
-    query: 'How many vacation days can an employee take in a year?',
-    icon: '✈️'
-  },
-  {
-    category: 'remote',
-    label: 'Work From Home Rules',
-    query: 'What is the work from home policy and what are the eligible days?',
-    icon: '💻'
-  },
-  {
-    category: 'attendance',
-    label: 'Late Arrival Penalty',
-    query: 'What happens if an employee is late or arrives after 9:30 AM?',
-    icon: '⏰'
-  },
-  {
-    category: 'exit',
-    label: 'Notice Period by Grade',
-    query: 'What is the employee notice period for each grade upon resignation?',
-    icon: '📋'
-  },
-  {
-    category: 'conduct',
-    label: 'Conflict of Interest & Gifts',
-    query: 'What is the policy regarding gifts and conflict of interest?',
-    icon: '⚖️'
-  },
-  {
-    category: 'test',
-    label: 'Unanswerable (Out of Domain)',
-    query: 'What is the company policy on cryptocurrency investments?',
-    icon: '🚫'
+    label: 'Carry forward',
+    query: "Can Priya Nair carry forward her remaining annual leave?",
+    icon: '✅'
   }
 ];
+
+export const SAMPLE_QUESTIONS = RECOMMENDED_QUESTIONS;
 
 export const POLICY_DOCUMENTS_CATALOG: PolicyDocumentMeta[] = [
   {

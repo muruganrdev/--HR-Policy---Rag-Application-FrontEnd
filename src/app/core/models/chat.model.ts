@@ -8,24 +8,49 @@ export interface QuestionRequest {
 }
 
 export interface AskResponse {
-  question: string;
+  question?: string;
   answer: string;
-  sources: PolicySource[];
+  sources?: PolicySource[];
+  route?: 'rag' | 'agent' | string;
+  tools_used?: string[];
+  conversation_id?: string;
+  session_id?: string;
+  memory_id?: string;
+  agent_info?: Record<string, unknown>;
+  previous_messages?: unknown[];
+  [key: string]: unknown;
 }
 
 export interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant' | 'system';
   text: string;
-  timestamp: Date;
+  timestamp: string;
   sources?: PolicySource[];
   isError?: boolean;
   isLoading?: boolean;
+  route?: 'rag' | 'agent' | string;
+  toolsUsed?: string[];
+}
+
+export interface ChatConversation {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatMessage[];
+}
+
+export interface ChatStateSnapshot {
+  version: number;
+  activeConversationId: string | null;
+  conversations: ChatConversation[];
+  savedAt: string;
 }
 
 export interface BackendHealthStatus {
   status: 'online' | 'offline' | 'checking';
   message?: string;
   endpoint?: string;
-  timestamp?: Date;
+  timestamp?: Date | string;
 }

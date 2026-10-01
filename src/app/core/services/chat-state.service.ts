@@ -1,39 +1,43 @@
 ﻿import { Injectable, signal, computed, inject } from '@angular/core';
-import { ChatMessage, BackendHealthStatus, AskResponse } from '../models/chat.model';
+import { ChatConversation, ChatMessage, BackendHealthStatus, AskResponse, ChatStateSnapshot } from '../models/chat.model';
 import { HrRagApiService } from './hr-rag-api.service';
+import { ChatStorageService } from './chat-storage.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChatStateService {
   private readonly apiService = inject(HrRagApiService);
+  private readonly storage = inject(ChatStorageService);
 
-  // Reactive State Signals
-  readonly messages = signal<ChatMessage[]>([
-    {
-      id: 'welcome-msg',
-      sender: 'assistant',
-      text: "👋 **Welcome to the ACME HR Policy Assistant!**\n\nI am your verified AI assistant grounded strictly in our company's official HR policy documents.\n\nYou can ask me about:\n- 🌴 **Annual & Sick Leave** rules\n- 💻 **Work From Home (WFH)** eligibility & schedules\n- ⏰ **Attendance & Working Hours**\n- ⚖️ **Employee Conduct & Harassment** guidelines\n- 📋 **Notice Periods & Exit Buyout** terms\n\nHow may I help you today?",
-      timestamp: new Date(),
-      sources: []
-    }
-  ]);
-
+  readonly conversations = signal<ChatConversation[]>([]);
+  readonly activeConversationId = signal<string | null>(null);
   readonly isLoading = signal<boolean>(false);
   readonly backendHealth = signal<BackendHealthStatus>({ status: 'checking' });
   readonly activeFilterCategory = signal<string>('all');
 
-  // Computed Values
+  readonly currentConversation = computed(() => {
+    const activeId = this.activeConversationId();
+    if (!activeId) {
+      return null;
+    }
+
+    return this.conversations().find(conversation => conversation.id === activeId) ?? null;
+  });
+
+  readonly messages = computed(() => this.currentConversation()?.messages ?? []);
   readonly messageCount = computed(() => this.messages().length);
-  readonly hasUserMessages = computed(() => this.messages().some(m => m.sender === 'user'));
+  readonly hasUserMessages = computed(() => this.messages().some(message => message.sender === 'user'));
 
   constructor() {
+    this.restoreFromStorage();
+    if (!this.conversations().length) {
+      this.createNewConversation(true);
+    }
+
     this.verifyBackendHealth();
   }
 
-  /**
-   * Checks the health of the FastAPI backend.
-   */
   verifyBackendHealth(): void {
     this.backendHealth.set({ status: 'checking' });
     this.apiService.checkHealth().subscribe({
@@ -42,98 +46,204 @@ export class ChatStateService {
           status: 'online',
           message: res.message || 'HR Policy API is connected',
           endpoint: res.endpoint || 'POST /ask',
-          timestamp: new Date()
+          timestamp: new Date().toISOString()
         });
       },
       error: (err) => {
         this.backendHealth.set({
           status: 'offline',
           message: err.message || 'Cannot connect to port 8001',
-          timestamp: new Date()
+          timestamp: new Date().toISOString()
         });
       }
     });
   }
 
-  /**
-   * Dispatches a user query to the RAG pipeline.
-   */
+  createNewConversation(autoPersist = true): ChatConversation {
+    const conversationId = `conversation-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const now = new Date().toISOString();
+    const conversation: ChatConversation = {
+      id: conversationId,
+      title: 'New chat',
+      createdAt: now,
+      updatedAt: now,
+      messages: []
+    };
+
+    this.conversations.update(list => [...list, conversation]);
+    this.activeConversationId.set(conversationId);
+
+    if (autoPersist) {
+      this.persistState();
+    }
+
+    return conversation;
+  }
+
+  selectConversation(conversationId: string): void {
+    const isKnown = this.conversations().some(conversation => conversation.id === conversationId);
+    if (!isKnown) {
+      return;
+    }
+
+    this.activeConversationId.set(conversationId);
+    this.persistState();
+  }
+
   sendQuestion(questionText: string): void {
     const trimmed = questionText.trim();
-    if (!trimmed || this.isLoading()) return;
+    if (!trimmed || this.isLoading()) {
+      return;
+    }
+
+    const activeConversation = this.currentConversation() ?? this.createNewConversation();
+    const now = new Date().toISOString();
 
     const userMessageId = `user-${Date.now()}`;
+    const pendingAssistantId = `assistant-loading-${Date.now()}`;
+
     const userMessage: ChatMessage = {
       id: userMessageId,
       sender: 'user',
       text: trimmed,
-      timestamp: new Date()
+      timestamp: now
     };
 
-    const pendingAssistantId = `assistant-loading-${Date.now()}`;
     const pendingAssistantMessage: ChatMessage = {
       id: pendingAssistantId,
       sender: 'assistant',
       text: '',
-      timestamp: new Date(),
+      timestamp: now,
       isLoading: true
     };
 
-    // Append user message & loading indicator
-    this.messages.update(msgs => [...msgs, userMessage, pendingAssistantMessage]);
+    this.updateConversation(activeConversation.id, conversation => ({
+      ...conversation,
+      title: this.determineTitle(conversation.title, trimmed),
+      updatedAt: now,
+      messages: [...conversation.messages, userMessage, pendingAssistantMessage]
+    }));
     this.isLoading.set(true);
+    this.persistState();
 
-    // Call API
     this.apiService.askQuestion(trimmed).subscribe({
       next: (res: AskResponse) => {
-        this.messages.update(msgs =>
-          msgs.map(m =>
-            m.id === pendingAssistantId
-              ? {
-                  id: `assistant-${Date.now()}`,
-                  sender: 'assistant',
-                  text: res.answer,
-                  timestamp: new Date(),
-                  sources: res.sources,
-                  isLoading: false
-                }
-              : m
+        const responseMessage: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          sender: 'assistant',
+          text: res.answer || 'I could not generate a response from the backend.',
+          timestamp: new Date().toISOString(),
+          sources: res.sources ?? [],
+          route: res.route ?? 'rag',
+          toolsUsed: Array.isArray(res.tools_used) ? res.tools_used : [],
+          isLoading: false
+        };
+
+        this.updateConversation(activeConversation.id, conversation => ({
+          ...conversation,
+          title: this.determineTitle(conversation.title, this.extractQuestionText(res, trimmed)),
+          updatedAt: responseMessage.timestamp,
+          messages: conversation.messages.map(message =>
+            message.id === pendingAssistantId ? responseMessage : message
           )
-        );
+        }));
         this.isLoading.set(false);
+        this.persistState();
       },
       error: (err: Error) => {
-        this.messages.update(msgs =>
-          msgs.map(m =>
-            m.id === pendingAssistantId
-              ? {
-                  id: `error-${Date.now()}`,
-                  sender: 'system',
-                  text: `⚠️ **Error communicating with HR API:**\n\n${err.message}`,
-                  timestamp: new Date(),
-                  isError: true,
-                  isLoading: false
-                }
-              : m
+        const errorMessage: ChatMessage = {
+          id: `error-${Date.now()}`,
+          sender: 'system',
+          text: `⚠️ **Error communicating with HR API:**\n\n${err.message}`,
+          timestamp: new Date().toISOString(),
+          isError: true,
+          isLoading: false
+        };
+
+        this.updateConversation(activeConversation.id, conversation => ({
+          ...conversation,
+          updatedAt: errorMessage.timestamp,
+          messages: conversation.messages.map(message =>
+            message.id === pendingAssistantId ? errorMessage : message
           )
-        );
+        }));
         this.isLoading.set(false);
+        this.persistState();
       }
     });
   }
 
-  /**
-   * Clears conversation and resets to welcome message.
-   */
   clearHistory(): void {
-    this.messages.set([
-      {
-        id: 'welcome-msg-reset',
-        sender: 'assistant',
-        text: "👋 **Conversation reset.**\n\nFeel free to ask any new question regarding ACME Corporation HR policies.",
-        timestamp: new Date(),
-        sources: []
-      }
-    ]);
+    const conversation = this.currentConversation() ?? this.createNewConversation();
+
+    this.updateConversation(conversation.id, current => ({
+      ...current,
+      title: 'New chat',
+      updatedAt: new Date().toISOString(),
+      messages: []
+    }));
+    this.persistState();
+  }
+
+  private restoreFromStorage(): void {
+    const snapshot = this.storage.loadState();
+    if (!snapshot || !this.storage.validateState(snapshot)) {
+      this.conversations.set([]);
+      this.activeConversationId.set(null);
+      return;
+    }
+
+    this.conversations.set(snapshot.conversations);
+    this.activeConversationId.set(snapshot.activeConversationId ?? snapshot.conversations[0]?.id ?? null);
+  }
+
+  private persistState(): void {
+    const snapshot: ChatStateSnapshot = {
+      version: 1,
+      activeConversationId: this.activeConversationId(),
+      conversations: this.conversations(),
+      savedAt: new Date().toISOString()
+    };
+
+    this.storage.saveState(snapshot);
+  }
+
+  private updateConversation(conversationId: string, updater: (conversation: ChatConversation) => ChatConversation): void {
+    this.conversations.update(list => list.map(conversation =>
+      conversation.id === conversationId ? updater(conversation) : conversation
+    ));
+  }
+
+  private determineTitle(currentTitle: string, questionText: string): string {
+    const trimmed = questionText.trim();
+    if (!trimmed) {
+      return currentTitle || 'New chat';
+    }
+
+    if (currentTitle && currentTitle !== 'New chat' && !trimmed.toLowerCase().includes(currentTitle.toLowerCase())) {
+      return currentTitle;
+    }
+
+    return this.buildTitle(trimmed);
+  }
+
+  private extractQuestionText(response: AskResponse, fallback: string): string {
+    return typeof response.question === 'string' && response.question.trim() ? response.question.trim() : fallback;
+  }
+
+  private buildTitle(question: string): string {
+    const cleaned = question
+      .replace(/\s+/g, ' ')
+      .replace(/\?+$/, '')
+      .trim();
+
+    if (!cleaned) {
+      return 'New chat';
+    }
+
+    const words = cleaned.split(' ');
+    const titleWords = words.slice(0, 10);
+    const title = titleWords.join(' ');
+    return title.length > 40 ? `${title.slice(0, 37).trim()}...` : title;
   }
 }
