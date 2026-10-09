@@ -1,4 +1,4 @@
-﻿import { Component, ElementRef, ViewChild, AfterViewChecked, inject } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewChecked, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChatStateService } from '../../core/services/chat-state.service';
@@ -37,12 +37,12 @@ export class ChatComponent implements AfterViewChecked {
     const query = this.userInput.trim();
     if (!query || this.chatState.isLoading()) return;
 
-    this.chatState.sendQuestion(query);
     this.userInput = '';
+    this.chatState.sendQuestion(query);
   }
 
   onKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
       this.submitQuestion();
     }

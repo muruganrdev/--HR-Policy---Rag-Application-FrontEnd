@@ -1,8 +1,14 @@
-﻿import { Injectable, inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, timeout, catchError, retry } from 'rxjs';
 import { API_CONSTANTS } from '../constants/api.constants';
 import { AskResponse, QuestionRequest } from '../models/chat.model';
+
+export interface RoleContextPayload {
+  role?: string;
+  employee_id?: string;
+  employee_name?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -15,8 +21,22 @@ export class HrRagApiService {
    * Sends a user question to the HR Policy RAG backend.
    * Endpoint: POST http://localhost:8001/ask
    */
-  askQuestion(question: string): Observable<AskResponse> {
-    const payload: QuestionRequest = { question: question.trim() };
+  askQuestion(
+    question: string,
+    conversationId: string,
+    roleContext?: RoleContextPayload
+  ): Observable<AskResponse> {
+    const payload: QuestionRequest = {
+      question: question.trim(),
+      conversation_id: conversationId,
+      ...(roleContext?.role
+        ? {
+            role: roleContext.role,
+            employee_id: roleContext.employee_id,
+            employee_name: roleContext.employee_name
+          }
+        : {})
+    };
     const url = `${this.baseUrl}${API_CONSTANTS.ENDPOINTS.ASK}`;
 
     return this.http.post<AskResponse>(url, payload).pipe(

@@ -1,7 +1,8 @@
-﻿import { Injectable, signal, computed, inject } from '@angular/core';
-import { ChatConversation, ChatMessage, BackendHealthStatus, AskResponse, ChatStateSnapshot } from '../models/chat.model';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { AskResponse, BackendHealthStatus, ChatConversation, ChatMessage, ChatStateSnapshot } from '../models/chat.model';
 import { HrRagApiService } from './hr-rag-api.service';
 import { ChatStorageService } from './chat-storage.service';
+import { RoleStateService } from './role-state.service';
 
 @Injectable({
   providedIn: 'root'
@@ -9,6 +10,7 @@ import { ChatStorageService } from './chat-storage.service';
 export class ChatStateService {
   private readonly apiService = inject(HrRagApiService);
   private readonly storage = inject(ChatStorageService);
+  readonly roleState = inject(RoleStateService);
 
   readonly conversations = signal<ChatConversation[]>([]);
   readonly activeConversationId = signal<string | null>(null);
@@ -27,7 +29,7 @@ export class ChatStateService {
 
   readonly messages = computed(() => this.currentConversation()?.messages ?? []);
   readonly messageCount = computed(() => this.messages().length);
-  readonly hasUserMessages = computed(() => this.messages().some(message => message.sender === 'user'));
+  readonly hasUserMessages = computed(() => this.messages().some((message: ChatMessage) => message.sender === 'user'));
 
   constructor() {
     this.restoreFromStorage();
@@ -35,7 +37,18 @@ export class ChatStateService {
       this.createNewConversation(true);
     }
 
+    this.roleState.identityChange$.subscribe(() => {
+      this.onRoleOrIdentityChanged();
+    });
+
     this.verifyBackendHealth();
+  }
+
+  private onRoleOrIdentityChanged(): void {
+    const current = this.currentConversation();
+    if (!current || current.messages.length > 0) {
+      this.createNewConversation(true);
+    }
   }
 
   verifyBackendHealth(): void {
@@ -96,9 +109,22 @@ export class ChatStateService {
       return;
     }
 
-    const activeConversation = this.currentConversation() ?? this.createNewConversation();
-    const now = new Date().toISOString();
+    const currentRoleContext = this.roleState.activeRoleContext();
+    const currentRoleLabel = this.roleState.activeIdentityLabel();
 
+    let activeConversation = this.currentConversation();
+    if (activeConversation && activeConversation.messages.length > 0) {
+      const firstUserMsg = activeConversation.messages.find((m: ChatMessage) => m.sender === 'user');
+      const msgRole = firstUserMsg?.role ?? 'Super Admin';
+      const msgEmpId = firstUserMsg?.employeeId ?? '001';
+      if (firstUserMsg && (msgRole !== currentRoleContext.role || msgEmpId !== currentRoleContext.employee_id)) {
+        activeConversation = this.createNewConversation(true);
+      }
+    } else if (!activeConversation) {
+      activeConversation = this.createNewConversation(true);
+    }
+
+    const now = new Date().toISOString();
     const userMessageId = `user-${Date.now()}`;
     const pendingAssistantId = `assistant-loading-${Date.now()}`;
 
@@ -106,7 +132,11 @@ export class ChatStateService {
       id: userMessageId,
       sender: 'user',
       text: trimmed,
-      timestamp: now
+      timestamp: now,
+      roleContextLabel: currentRoleLabel,
+      role: currentRoleContext.role,
+      employeeId: currentRoleContext.employee_id,
+      employeeName: currentRoleContext.employee_name
     };
 
     const pendingAssistantMessage: ChatMessage = {
@@ -126,7 +156,7 @@ export class ChatStateService {
     this.isLoading.set(true);
     this.persistState();
 
-    this.apiService.askQuestion(trimmed).subscribe({
+    this.apiService.askQuestion(trimmed, activeConversation.id, currentRoleContext).subscribe({
       next: (res: AskResponse) => {
         const responseMessage: ChatMessage = {
           id: `assistant-${Date.now()}`,
@@ -143,7 +173,7 @@ export class ChatStateService {
           ...conversation,
           title: this.determineTitle(conversation.title, this.extractQuestionText(res, trimmed)),
           updatedAt: responseMessage.timestamp,
-          messages: conversation.messages.map(message =>
+          messages: conversation.messages.map((message: ChatMessage) =>
             message.id === pendingAssistantId ? responseMessage : message
           )
         }));
@@ -163,7 +193,7 @@ export class ChatStateService {
         this.updateConversation(activeConversation.id, conversation => ({
           ...conversation,
           updatedAt: errorMessage.timestamp,
-          messages: conversation.messages.map(message =>
+          messages: conversation.messages.map((message: ChatMessage) =>
             message.id === pendingAssistantId ? errorMessage : message
           )
         }));
@@ -194,7 +224,8 @@ export class ChatStateService {
     }
 
     this.conversations.set(snapshot.conversations);
-    this.activeConversationId.set(snapshot.activeConversationId ?? snapshot.conversations[0]?.id ?? null);
+    const activeExists = snapshot.conversations.some(c => c.id === snapshot.activeConversationId);
+    this.activeConversationId.set(activeExists ? snapshot.activeConversationId : (snapshot.conversations[0]?.id ?? null));
   }
 
   private persistState(): void {

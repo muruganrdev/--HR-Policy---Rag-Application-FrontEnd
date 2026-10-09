@@ -1,8 +1,12 @@
-﻿<div class="chat-layout">
+<div class="chat-layout">
   <header class="chat-topbar">
     <div class="chat-title-block">
       <span class="eyebrow">AI Assistant</span>
       <h1>{{ activeConversationTitle }}</h1>
+    </div>
+    <div class="active-role-badge" id="active-role-badge" [attr.aria-label]="chatState.roleState.activeIdentityLabel()">
+      <span class="role-indicator-dot"></span>
+      <span class="role-label">{{ chatState.roleState.activeIdentityLabel() }}</span>
     </div>
   </header>
 
@@ -21,6 +25,10 @@
           </div>
 
           <div class="message-content-wrapper">
+            @if (msg.sender === 'user' && msg.roleContextLabel) {
+              <div class="message-role-tag">{{ msg.roleContextLabel }}</div>
+            }
+
             <div class="message-bubble" [ngClass]="{ 'error-bubble': msg.isError, 'loading-bubble': msg.isLoading }">
               @if (msg.isLoading) {
                 <div class="rag-thinking" aria-live="polite" aria-label="Assistant is thinking">
@@ -114,7 +122,7 @@
     </div>
 
     <div class="input-disclaimer">
-      <span>🔒 Answers are grounded in ACME HR policy documents and routed through the current backend pipeline.</span>
+      <span>🛡️ Answers are grounded in ACME HR policy documents and routed through the current backend pipeline.</span>
     </div>
   </div>
 </div>

@@ -2,13 +2,10 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { BrowserDynamicTestingModule, platformBrowserDynamicTesting } from '@angular/platform-browser-dynamic/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HrRagApiService } from './hr-rag-api.service';
 import { API_CONSTANTS } from '../constants/api.constants';
-
-TestBed.initTestEnvironment(BrowserDynamicTestingModule, platformBrowserDynamicTesting());
 
 describe('HrRagApiService', () => {
   let service: HrRagApiService;
@@ -42,14 +39,17 @@ describe('HrRagApiService', () => {
       sources: [{ source: 'leave_policy.pdf', chunk: 1 }]
     };
 
-    service.askQuestion('What is leave policy?').subscribe(res => {
+    service.askQuestion('What is leave policy?', 'chat-123').subscribe(res => {
       expect(res.answer).toBe('20 days annual leave');
       expect(res.sources?.length).toBe(1);
     });
 
     const req = httpMock.expectOne(`${API_CONSTANTS.BASE_URL}/ask`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ question: 'What is leave policy?' });
+    expect(req.request.body).toEqual({
+      question: 'What is leave policy?',
+      conversation_id: 'chat-123'
+    });
     req.flush(dummyResponse);
   });
 });

@@ -1,0 +1,172 @@
+<main class="role-access-page">
+  <section class="hero-panel">
+    <div class="hero-copy">
+      <h1>Choose Role Access</h1>
+    </div>
+    <div class="demo-badge">Demo</div>
+  </section>
+
+  <section class="data-source-bar" aria-label="Data source">
+    <span class="data-source-label">Data Source:</span>
+    <strong> Demo Data — Not connected to production employee records</strong>
+  </section>
+
+  <section class="role-controls" aria-label="Role controls">
+    <div class="control-group">
+      <label for="role-select">Select role</label>
+      <select id="role-select" [value]="selectedRole()" (change)="selectRole($any($event.target).value)">
+        @for (role of roles; track role.id) {
+          <option [value]="role.id">{{ role.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="role-summary">
+      <span class="summary-label">Current role</span>
+      <strong>{{ selectedRoleLabel() }}</strong>
+      <p>{{ roleDefinition().note }}</p>
+    </div>
+  </section>
+
+  @if (selectedRole() === 'employee') {
+    <section class="employee-section card">
+      <div class="card-header">
+        <span class="card-icon">👤</span>
+        <h2>Choose Employee</h2>
+      </div>
+
+      <div class="identity-selector">
+        <label for="employee-select">Select Employee</label>
+        <select
+          id="employee-select"
+          [value]="selectedEmployeeId()"
+          [disabled]="isLoading() || employeeOptions().length === 0"
+          (change)="selectEmployee($any($event.target).value)"
+        >
+          @if (employeeOptions().length === 0) {
+            <option value="">{{ isLoading() ? 'Loading employees...' : 'No employees available' }}</option>
+          }
+          @for (employee of employeeOptions(); track employee.employee_id) {
+            <option [value]="employee.employee_id">{{ employee.employee_name }}</option>
+          }
+        </select>
+        @if (!isLoading() && employeeOptions().length === 0) {
+          <p class="selector-state">No employees are available for this identity.</p>
+        }
+      </div>
+    </section>
+  } @else if (selectedRole() === 'manager') {
+    <section class="employee-section card">
+      <div class="card-header">
+        <span class="card-icon">👤</span>
+        <h2>Choose Manager</h2>
+      </div>
+
+      <div class="identity-selector">
+        <label for="manager-select">Select Manager</label>
+        <select
+          id="manager-select"
+          [value]="selectedManagerId()"
+          [disabled]="isLoading() || managers().length === 0"
+          (change)="selectManager($any($event.target).value)"
+        >
+          @if (managers().length === 0) {
+            <option value="">{{ isLoading() ? 'Loading managers...' : 'No managers available' }}</option>
+          }
+          @for (manager of managers(); track manager.employee_id) {
+            <option [value]="manager.employee_id">{{ manager.manager_name }}</option>
+          }
+        </select>
+        @if (!isLoading() && managers().length === 0) {
+          <p class="selector-state">No demo managers are currently available.</p>
+        }
+      </div>
+
+      <div class="team-results" aria-live="polite">
+        <h3>Authorized team</h3>
+        @if (isLoading() && employees().length === 0) {
+          <p class="selector-state">Loading authorized team...</p>
+        } @else if (employees().length === 0) {
+          <p class="selector-state">No employees are assigned to this demo manager.</p>
+        } @else {
+          <ul>
+            @for (employee of employees(); track employee.employee_id) {
+              <li>
+                <strong>{{ employee.employee_name }}</strong>
+                <span>{{ employee.department }} · {{ employee.designation }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </section>
+  }
+
+  <section class="access-section card">
+    <div class="card-header">
+      <span class="card-icon">🧰</span>
+      <h2>Access & Permissions</h2>
+    </div>
+
+    @if (selectedRole() === 'employee') {
+      <p class="employee-access-message">{{ employeeAccessMessage() }}</p>
+    } @else if (selectedRole() === 'manager') {
+      <p class="employee-access-message">View access is limited to the selected manager's authorized team.</p>
+    } @else {
+      <div class="action-grid">
+        <div class="action-item">
+          <button
+            type="button"
+            class="action-button create-button"
+            [disabled]="!canCreate() || isLoading()"
+            [attr.aria-disabled]="!canCreate() || isLoading()"
+            (click)="createEmployee()"
+          >
+            {{ isLoading() ? 'Working...' : 'Create Employee' }}
+          </button>
+          <span class="action-status">
+            {{ canCreate() ? 'Allowed' : 'Unavailable' }}
+          </span>
+        </div>
+
+        <div class="action-item">
+          <button
+            type="button"
+            class="action-button update-button"
+            [disabled]="!canUpdate() || isLoading()"
+            [attr.aria-disabled]="!canUpdate() || isLoading()"
+            (click)="updateEmployee()"
+          >
+            {{ isLoading() ? 'Working...' : 'Edit Employee' }}
+          </button>
+          <span class="action-status">
+            {{ canUpdate() ? 'Allowed' : 'Unavailable' }}
+          </span>
+        </div>
+
+        <div class="action-item">
+          <button
+            type="button"
+            class="action-button delete-button"
+            [disabled]="!canDelete() || isLoading()"
+            [attr.aria-disabled]="!canDelete() || isLoading()"
+            (click)="deleteEmployee()"
+          >
+            {{ isLoading() ? 'Working...' : 'Delete Employee' }}
+          </button>
+          <span class="action-status">
+            {{ canDelete() ? 'Allowed' : 'Unavailable' }}
+          </span>
+        </div>
+      </div>
+      <p class="auth-limitation">Super Admin operations remain unavailable until the backend receives a trusted authenticated identity.</p>
+    }
+
+    @if (statusMessage()) {
+      <p class="status-message success">{{ statusMessage() }}</p>
+    }
+    @if (errorMessage()) {
+      <p class="status-message error">{{ errorMessage() }}</p>
+    }
+  </section>
+</main>

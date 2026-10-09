@@ -1,10 +1,14 @@
-﻿export interface PolicySource {
+export interface PolicySource {
   source: string;
   chunk: number;
 }
 
 export interface QuestionRequest {
   question: string;
+  conversation_id: string;
+  role?: string;
+  employee_id?: string;
+  employee_name?: string;
 }
 
 export interface AskResponse {
@@ -31,6 +35,10 @@ export interface ChatMessage {
   isLoading?: boolean;
   route?: 'rag' | 'agent' | string;
   toolsUsed?: string[];
+  roleContextLabel?: string;
+  role?: string;
+  employeeId?: string;
+  employeeName?: string;
 }
 
 export interface ChatConversation {
